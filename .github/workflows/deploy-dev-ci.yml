@@ -25,16 +25,16 @@ jobs:
       - name: Install Dependencies
         run: pnpm install
 
-      - name: Build Backend
-        run: pnpm build
-        working-directory: ./services/backend
+      - name: Authenticate to Firebase
+        run:
+          echo "${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}" >
+          $HOME/gcp-key.json
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS:
+            ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
 
       - name: Deploy to Firebase
-        uses: w9jds/firebase-action@v13.7.1
-        continue-on-error: false
-        working-directory: ./services/backend
-        with:
-          args: deploy --only firestore,functions --force
         env:
-          GCP_SA_KEY: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
-          PROJECT_ID: early-dev-73f4d
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: npx firebase deploy
+        working-directory: ./services/api
