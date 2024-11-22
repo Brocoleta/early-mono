@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Box from "@mui/material/Box";
-import MUIDataTable, { type MUIDataTableMeta } from "mui-datatables";
+import MUIDataTable from "mui-datatables";
 import { useAuthContext } from "@/context/AuthContext";
 import { useProducerContext } from "@/context/ProducerContext";
 import Unauthorized from "@/components/Auth/Unauthorized";
@@ -8,8 +8,6 @@ import { getEventsTicketsFromBigQueryFunction } from "@/firebase/functions/bigqu
 import LoadingComponent from "@/components/Materials/LoadingComponent";
 import type { Event } from "@/firebase/interfaces/events";
 import StatusLabel from "../Operations/StatusLabel";
-import GradientButton from "@/components/Materials/GradientButton";
-import { validateTicketFunction } from "@/firebase/functions/events/tickets/validate";
 
 type TicketRow = {
   id: string;
@@ -34,7 +32,6 @@ export default function EventTickets({
   const [loading, setLoading] = useState(true);
   const { isAdmin } = useAuthContext();
   const { producerId } = useProducerContext();
-  const [validating, setValidating] = useState(false);
 
   useEffect(() => {
     if (!eventId || !event?.operations) return;
@@ -74,31 +71,6 @@ export default function EventTickets({
         setLoading(false);
       });
   }, [eventId, event?.operations, isAdmin]);
-
-  const handleValidation = async (ticketId: string, userId: string) => {
-    setValidating(true);
-    try {
-      const result = await validateTicketFunction({
-        qrHash: [eventId, ticketId, userId].join(","),
-        eventRefId: eventId,
-        validatedAt: new Date().toISOString(),
-      });
-      if (result.data.success) {
-        const newRows = rows.map((ticket) => {
-          if (ticket.id == ticketId) {
-            return {
-              ...ticket,
-              status: "Validated",
-            };
-          }
-          return ticket;
-        });
-        setRows(newRows);
-      }
-    } finally {
-      setValidating(false);
-    }
-  };
 
   const columns = [
     {
@@ -170,28 +142,6 @@ export default function EventTickets({
       options: {
         filter: true,
         sort: true,
-      },
-    },
-    {
-      name: "validate",
-      label: "Validar",
-      width: 200,
-      options: {
-        filter: true,
-        sort: true,
-        customBodyRender: (_: string, tableMeta: MUIDataTableMeta) => {
-          const ticket: TicketRow = rows[tableMeta.rowIndex]!;
-
-          return (
-            <GradientButton
-              disabled={ticket.status == "Validated"}
-              onClick={() => void handleValidation(ticket.id, ticket.userId)}
-              loading={validating}
-            >
-              Validar
-            </GradientButton>
-          );
-        },
       },
     },
   ];
